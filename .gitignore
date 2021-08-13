@@ -1,1 +1,7 @@
-/__pycache__/
+*.elc
+*.pyc
+/.log/
+__pycache__
+node_modules/
+dist/
+tags

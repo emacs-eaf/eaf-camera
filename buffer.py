@@ -36,9 +36,7 @@ class AppBuffer(Buffer):
     def __init__(self, buffer_id, url, arguments):
         Buffer.__init__(self, buffer_id, url, arguments, True)
 
-        self.background_color = QColor(0, 0, 0)
-
-        self.add_widget(CameraWidget(QColor(get_emacs_var("eaf-buffer-background-color"))))
+        self.add_widget(CameraWidget(QColor(get_emacs_var("eaf-emacs-theme-background-color"))))
 
     def all_views_hide(self):
         # Need stop camera if all view will hide, otherwise camera will crash.

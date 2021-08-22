@@ -36,7 +36,9 @@ class AppBuffer(Buffer):
     def __init__(self, buffer_id, url, arguments):
         Buffer.__init__(self, buffer_id, url, arguments, True)
 
-        self.add_widget(CameraWidget(QColor(get_emacs_var("eaf-emacs-theme-background-color"))))
+        self.camera_save_path = get_emacs_var("eaf-camera-save-path")
+
+        self.add_widget(CameraWidget(QColor(self.theme_background_color)))
 
     def all_views_hide(self):
         # Need stop camera if all view will hide, otherwise camera will crash.
@@ -47,8 +49,8 @@ class AppBuffer(Buffer):
         self.buffer_widget.camera.start()
 
     def take_photo(self):
-        if os.path.exists(os.path.expanduser(get_emacs_var("eaf-camera-save-path"))):
-            location = get_emacs_var("eaf-camera-save-path")
+        if os.path.exists(os.path.expanduser(self.camera_save_path)):
+            location = self.camera_save_path
         else:
             location = "~/Downloads"
         result = self.buffer_widget.take_photo(location)

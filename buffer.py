@@ -19,13 +19,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from PyQt5.QtCore import Qt, QSizeF
-from PyQt5.QtGui import QBrush
-from PyQt5.QtGui import QColor
-from PyQt5.QtMultimedia import QCameraInfo, QCamera, QCameraImageCapture
-from PyQt5.QtMultimediaWidgets import QGraphicsVideoItem
-from PyQt5.QtWidgets import QGraphicsScene, QGraphicsView, QFrame
-from PyQt5.QtWidgets import QWidget, QVBoxLayout
+from PyQt6.QtCore import Qt, QSizeF
+from PyQt6.QtGui import QBrush
+from PyQt6.QtGui import QColor
+from PyQt6.QtMultimedia import QMediaDevices, QCamera, QMediaCaptureSession, QImageCapture
+from PyQt6.QtMultimediaWidgets import QGraphicsVideoItem
+from PyQt6.QtWidgets import QGraphicsScene, QGraphicsView, QFrame
+from PyQt6.QtWidgets import QWidget, QVBoxLayout
 from core.buffer import Buffer
 from core.utils import message_to_emacs, get_emacs_var
 from pathlib import Path
@@ -70,9 +70,9 @@ class CameraWidget(QWidget):
         self.scene = QGraphicsScene(self)
         self.scene.setBackgroundBrush(QBrush(background_color))
         self.graphics_view = QGraphicsView(self.scene)
-        self.graphics_view.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.graphics_view.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.graphics_view.setFrameStyle(QFrame.NoFrame)
+        self.graphics_view.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.graphics_view.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.graphics_view.setFrameStyle(QFrame.Shape.NoFrame)
         self.graphics_view.scale(-1, 1) # this make live video from camero mirror.
         self.video_item = QGraphicsVideoItem()
         self.scene.addItem(self.video_item)
@@ -82,32 +82,32 @@ class CameraWidget(QWidget):
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.addWidget(self.graphics_view)
 
-        self.available_cameras = QCameraInfo.availableCameras()
-
         # Set the default camera.
-        self.select_camera(0)
+        self.camera = QCamera(QMediaDevices.defaultVideoInput())
+        
+        self.image_capture = QImageCapture(self.camera)
+        
+        self.media_capture_session = QMediaCaptureSession()
+        self.media_capture_session.setCamera(self.camera)
+        self.media_capture_session.setVideoOutput(self.video_item)
+        self.media_capture_session.setImageCapture(self.image_capture)
+        
+        self.camera.start()
 
     def resizeEvent(self, event):
         self.video_item.setSize(QSizeF(event.size().width(), event.size().height()))
         QWidget.resizeEvent(self, event)
 
-    def select_camera(self, i):
-        self.camera = QCamera(self.available_cameras[i])
-        self.camera.setViewfinder(self.video_item)
-        self.camera.setCaptureMode(QCamera.CaptureStillImage)
-        self.camera.start()
-
     def take_photo(self, camera_save_path):
-        image_capture = QCameraImageCapture(self.camera)
         save_path = str(Path(os.path.expanduser(camera_save_path)))
         photo_path = os.path.join(save_path, "EAF_Camera_Photo_" + time.strftime("%Y%m%d_%H%M%S", time.localtime(int(time.time()))))
-        return image_capture.capture(photo_path)
+        return self.image_capture.captureToFile(photo_path)
 
     def stop_camera(self):
         self.camera.stop()
 
 if __name__ == "__main__":
-    from PyQt5.QtWidgets import QApplication
+    from PyQt6.QtWidgets import QApplication
     import sys
     import signal
     app = QApplication(sys.argv)

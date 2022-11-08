@@ -1,14 +1,3 @@
 {
-  "pacman": [
-    "qt6-multimedia"
-  ],
-  "apt": [
-    "qt6-multimedia-dev"
-  ],
-  "dnf": [
-    "qt6-qtmultimedia"
-  ],
-  "zypper": [
-    "qt6-multimedia"
-  ]
+    "vue_install": true
 }

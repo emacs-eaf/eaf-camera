@@ -19,10 +19,34 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from PyQt6 import QtCore
 from core.webengine import BrowserBuffer
+from core.utils import get_emacs_var, touch, message_to_emacs
+import base64
+import os
 
 class AppBuffer(BrowserBuffer):
     def __init__(self, buffer_id, url, arguments):
         BrowserBuffer.__init__(self, buffer_id, url, arguments, False)
 
+        self.download_path = get_emacs_var("eaf-webengine-download-path")
+
         self.load_index_html(__file__)
+
+    @QtCore.pyqtSlot(str)
+    def save_screenshot(self, base64_string):
+        path = os.path.expanduser(os.path.join(self.download_path, "screenshot.png"))
+        self.save_base64_image(base64_string, path)
+
+        message_to_emacs(f"Save screenshot to: {path}")
+
+    def save_base64_image(self, base64_string, file_path):
+        # Remove "data:image/png;base64," if it's included in the string
+        if base64_string.startswith("data:image/png;base64,"):
+            base64_string = base64_string[len("data:image/png;base64,"):]
+
+        # Decode the Base64 string to bytes
+        image_data = base64.b64decode(base64_string)
+
+        with open(file_path, "wb") as f:
+            f.write(image_data)

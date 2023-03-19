@@ -89,7 +89,8 @@
   :type 'string)
 
 (defcustom eaf-camera-keybinding
-  '(("<f12>" . "open_devtools"))
+  '(("c"     . "js_capture")
+    ("<f12>" . "open_devtools"))
   "The keybinding of EAF Camera."
   :type 'cons)
 

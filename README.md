@@ -10,3 +10,11 @@ Camera application for the [Emacs Application Framework](https://github.com/emac
 (require 'eaf)
 (require 'eaf-camera)
 ```
+
+### The keybinding of EAF Camera.
+
+| Key   | Event   |
+| :---- | :------ |
+| `c` | js_capture |
+| `<f12>` | open_devtools |
+

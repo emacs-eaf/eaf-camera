@@ -1,6 +1,6 @@
 <template>
   <div class="box">
-    <video id="video" ref="video" autoplay></video>
+    <video id="video" ref="video" class="mirrored" autoplay></video>
   </div>
 </template>
 
@@ -91,5 +91,9 @@
  #video {
    width: 100%;
    height: 100%;
+ }
+
+ .mirrored {
+   transform: scaleX(-1);
  }
 </style>

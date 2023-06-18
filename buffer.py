@@ -21,7 +21,7 @@
 
 from PyQt6 import QtCore
 from core.webengine import BrowserBuffer
-from core.utils import get_emacs_var, touch, message_to_emacs
+from core.utils import get_emacs_var, message_to_emacs
 import base64
 import os
 

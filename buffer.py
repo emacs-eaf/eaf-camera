@@ -63,35 +63,6 @@ class AppBuffer(BrowserBuffer):
         with open(file_path, "wb") as f:
             f.write(image_data)
 
-    def destroy_buffer(self):
-        """Release camera resources before destroying buffer"""
-        try:
-            # Call JavaScript release method
-            self.buffer_widget.eval_js_function("releaseCamera")
-            
-            # Force clear any hanging permissions
-            from PyQt6.QtWebEngineCore import QWebEnginePage, QWebEngineProfile
-            try:
-                # Close any possible permission request dialogs
-                self.buffer_widget.web_page.setFeaturePermission(
-                    QUrl("file://"),
-                    QWebEnginePage.Feature.MediaVideoCapture,
-                    QWebEnginePage.PermissionPolicy.PermissionDeniedByUser
-                )
-                
-                # Clear WebEngine cache
-                profile = QWebEngineProfile.defaultProfile()
-                profile.clearHttpCache()
-                print("WebEngine cache cleared")
-            except Exception as e:
-                print(f"Error clearing permissions: {e}")
-        
-        except Exception as e:
-            print(f"Error releasing camera resources: {e}")
-        
-        # Call parent class destroy_buffer method
-        super().destroy_buffer()
-
     @QtCore.pyqtSlot(result=bool)
     def request_camera_permission(self):
         """Request camera permission, may trigger system permission dialog"""

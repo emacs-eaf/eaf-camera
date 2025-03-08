@@ -66,20 +66,5 @@ class AppBuffer(BrowserBuffer):
     @QtCore.pyqtSlot(result=bool)
     def request_camera_permission(self):
         """Request camera permission, may trigger system permission dialog"""
-        try:
-            print("Forcing camera permission request...")
-            # Correctly get web_page object
-            from PyQt6.QtWebEngineCore import QWebEnginePage
-
-            # Directly set permission, don't try to reset
-            self.buffer_widget.web_page.setFeaturePermission(
-                QUrl("file://"),
-                QWebEnginePage.Feature.MediaVideoCapture,
-                QWebEnginePage.PermissionPolicy.PermissionGrantedByUser)
-
-            # Refresh page to apply new permissions
-            self.buffer_widget.reload()
-            return True
-        except Exception as e:
-            print(f"Error requesting camera permission: {e}")
-            return False
+        self.buffer_widget.reload()
+        return True

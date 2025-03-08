@@ -46,13 +46,11 @@
    methods: {
      initCamera() {
        if (this.initializingCamera) {
-         console.log("Camera is initializing, please wait...");
          return;
        }
        
        this.initializingCamera = true;
        this.initAttempts++;
-       console.log(`Initializing camera... (Attempt ${this.initAttempts})`);
        this.errorMessage = null;
        
        var video = document.getElementById('video');
@@ -80,7 +78,6 @@
            
            // Automatically retry if attempt count is less than max
            if (this.initAttempts < this.maxAttempts) {
-             console.log(`Camera initialization failed, auto-retrying in ${1000}ms...`);
              setTimeout(() => {
                this.initCamera();
              }, 1000);
@@ -89,109 +86,39 @@
      },
      
      async detectAndUseCamera(video) {
-       // Try multiple methods to get camera stream
-       
-       console.log("Browser info:", navigator.userAgent);
-       console.log("Checking if mediaDevices exists:", !!navigator.mediaDevices);
-       console.log("Checking if getUserMedia exists:", navigator.mediaDevices ? !!navigator.mediaDevices.getUserMedia : false);
-       
-       // First try delayed detection to give browser more time to initialize API
+       // Check if API is missing and wait briefly
        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-         console.log("API not ready yet, waiting 500ms before retrying...");
-         await new Promise(resolve => setTimeout(resolve, 500));
-         
-         // Check API availability again
-         console.log("After delay, checking if mediaDevices exists:", !!navigator.mediaDevices);
-         console.log("After delay, checking if getUserMedia exists:", navigator.mediaDevices ? !!navigator.mediaDevices.getUserMedia : false);
+         await new Promise(resolve => setTimeout(resolve, 50));
        }
        
        // Check if camera API is completely missing
        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-         console.error("Browser doesn't support modern camera API, trying to request permission...");
-         
          // Try to activate API by requesting permission
          try {
            await this.pyobject.request_camera_permission();
            
-           // Check API availability again
-           console.log("After permission request, checking API status...");
-           console.log("- mediaDevices exists:", !!navigator.mediaDevices);
-           console.log("- getUserMedia exists:", navigator.mediaDevices ? !!navigator.mediaDevices.getUserMedia : false);
-           
            // Extra delay to let API initialize
-           await new Promise(resolve => setTimeout(resolve, 500));
-           
-           // Check if API has become available
-           if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-             console.log("After permission request, API became available");
-           } else {
-             console.error("After permission request, API still unavailable");
-           }
+           await new Promise(resolve => setTimeout(resolve, 50));
          } catch (e) {
            console.error("Failed to request permission:", e);
          }
        }
        
-       // Method 1: Standard mediaDevices.getUserMedia
        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-         console.log("Trying standard navigator.mediaDevices.getUserMedia...");
          try {
            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
            this.handleStream(stream, video);
            return;
          } catch (err) {
-           console.warn("Standard method failed:", err.name, err.message);
-           // Continue to try other methods
+           console.warn("Camera access failed:", err.name, err.message);
          }
        }
-       
-       // Method 2: Legacy getUserMedia
-       const oldGetUserMedia = navigator.getUserMedia || 
-                              navigator.webkitGetUserMedia || 
-                              navigator.mozGetUserMedia || 
-                              navigator.msGetUserMedia;
-       
-       if (oldGetUserMedia) {
-         console.log("Trying legacy getUserMedia...");
-         return new Promise((resolve, reject) => {
-           oldGetUserMedia.call(navigator, 
-             { video: true }, 
-             stream => {
-               this.handleStream(stream, video);
-               resolve();
-             },
-             err => {
-               console.warn("Legacy method failed:", err);
-               reject(new Error("All methods failed"));
-             }
-           );
-         });
-       }
-       
-       // Method 3: Relaxed constraints
-       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-         console.log("Trying relaxed constraints...");
-         try {
-           const stream = await navigator.mediaDevices.getUserMedia({ 
-             video: { 
-               width: { ideal: 640 },
-               height: { ideal: 480 },
-               frameRate: { ideal: 15 }
-             }
-           });
-           this.handleStream(stream, video);
-           return;
-         } catch (err) {
-           console.warn("Relaxed constraints method failed:", err);
-         }
-       }
-       
+
        // All methods failed
        throw new Error("Browser doesn't support any camera access method");
      },
      
      handleStream(stream, video) {
-       console.log("Successfully obtained camera stream");
        this.videoStream = stream;
        video.srcObject = stream;
        try {
@@ -202,12 +129,10 @@
      },
      
      releaseCamera() {
-       console.log("Releasing camera resources...");
        if (this.videoStream) {
          try {
            this.videoStream.getTracks().forEach(track => {
              track.stop();
-             console.log(`Track ${track.kind} stopped`);
            });
            this.videoStream = null;
            
@@ -216,13 +141,9 @@
            if (video && video.srcObject) {
              video.srcObject = null;
            }
-           
-           console.log("Camera resources released");
          } catch (e) {
            console.error("Error releasing camera resources:", e);
          }
-       } else {
-         console.log("No active camera stream to release");
        }
      },
      

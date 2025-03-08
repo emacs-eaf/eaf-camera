@@ -106,12 +106,6 @@ class AppBuffer(BrowserBuffer):
                 QWebEnginePage.Feature.MediaVideoCapture,
                 QWebEnginePage.PermissionPolicy.PermissionGrantedByUser)
 
-            # Try to set HTTP protocol permission
-            self.buffer_widget.web_page.setFeaturePermission(
-                QUrl("http://localhost/"),
-                QWebEnginePage.Feature.MediaVideoCapture,
-                QWebEnginePage.PermissionPolicy.PermissionGrantedByUser)
-
             # Refresh page to apply new permissions
             self.buffer_widget.reload()
             return True

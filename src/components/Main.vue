@@ -34,38 +34,38 @@
      window.releaseCamera = this.releaseCamera;
      window.retryCamera = this.initCamera;
 
-     // 延迟初始化摄像头，给页面加载更多时间
+     // Delay camera initialization to give page more loading time
      setTimeout(() => {
        this.initCamera();
      }, 300);
    },
    beforeDestroy() {
-     // 组件销毁时释放资源
+     // Release resources when component is destroyed
      this.releaseCamera();
    },
    methods: {
      initCamera() {
        if (this.initializingCamera) {
-         console.log("摄像头正在初始化中，请稍候...");
+         console.log("Camera is initializing, please wait...");
          return;
        }
        
        this.initializingCamera = true;
        this.initAttempts++;
-       console.log(`初始化摄像头... (第 ${this.initAttempts} 次尝试)`);
+       console.log(`Initializing camera... (Attempt ${this.initAttempts})`);
        this.errorMessage = null;
        
        var video = document.getElementById('video');
 
-       // 确保之前的流已经释放
+       // Ensure previous stream is released
        this.releaseCamera();
        
-       // 创建一个超时Promise，并使用Promise.race确保不会无限等待
+       // Create a timeout Promise and use Promise.race to ensure we don't wait indefinitely
        const timeoutPromise = new Promise((_, reject) => {
-         setTimeout(() => reject(new Error("获取摄像头超时")), 5000);
+         setTimeout(() => reject(new Error("Camera access timed out")), 5000);
        });
        
-       // 使用Promise.race来处理可能的超时情况
+       // Use Promise.race to handle possible timeout situations
        Promise.race([
          this.detectAndUseCamera(video),
          timeoutPromise
@@ -74,13 +74,13 @@
            this.initializingCamera = false;
          })
          .catch(err => {
-           console.error("初始化摄像头失败:", err);
-           this.errorMessage = `无法访问摄像头: ${err.message || '未知错误'}`;
+           console.error("Failed to initialize camera:", err);
+           this.errorMessage = `Cannot access camera: ${err.message || 'Unknown error'}`;
            this.initializingCamera = false;
            
-           // 如果尝试次数小于最大次数，自动重试
+           // Automatically retry if attempt count is less than max
            if (this.initAttempts < this.maxAttempts) {
-             console.log(`摄像头初始化失败，${1000}ms 后自动重试...`);
+             console.log(`Camera initialization failed, auto-retrying in ${1000}ms...`);
              setTimeout(() => {
                this.initCamera();
              }, 1000);
@@ -89,70 +89,70 @@
      },
      
      async detectAndUseCamera(video) {
-       // 尝试多种方法获取摄像头流
+       // Try multiple methods to get camera stream
        
-       console.log("浏览器信息:", navigator.userAgent);
-       console.log("检查mediaDevices是否存在:", !!navigator.mediaDevices);
-       console.log("检查getUserMedia是否存在:", navigator.mediaDevices ? !!navigator.mediaDevices.getUserMedia : false);
+       console.log("Browser info:", navigator.userAgent);
+       console.log("Checking if mediaDevices exists:", !!navigator.mediaDevices);
+       console.log("Checking if getUserMedia exists:", navigator.mediaDevices ? !!navigator.mediaDevices.getUserMedia : false);
        
-       // 先尝试延迟检测，给浏览器更多时间初始化API
+       // First try delayed detection to give browser more time to initialize API
        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-         console.log("API尚未准备好，等待500ms后重试...");
+         console.log("API not ready yet, waiting 500ms before retrying...");
          await new Promise(resolve => setTimeout(resolve, 500));
          
-         // 再次检查API是否可用
-         console.log("延迟后重新检查mediaDevices是否存在:", !!navigator.mediaDevices);
-         console.log("延迟后重新检查getUserMedia是否存在:", navigator.mediaDevices ? !!navigator.mediaDevices.getUserMedia : false);
+         // Check API availability again
+         console.log("After delay, checking if mediaDevices exists:", !!navigator.mediaDevices);
+         console.log("After delay, checking if getUserMedia exists:", navigator.mediaDevices ? !!navigator.mediaDevices.getUserMedia : false);
        }
        
-       // 检查是否完全没有摄像头API
+       // Check if camera API is completely missing
        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-         console.error("浏览器不支持现代摄像头API，尝试请求权限...");
+         console.error("Browser doesn't support modern camera API, trying to request permission...");
          
-         // 尝试通过请求权限来激活API
+         // Try to activate API by requesting permission
          try {
            await this.pyobject.request_camera_permission();
            
-           // 再次检查API是否可用
-           console.log("权限请求后，检查API状态...");
-           console.log("- mediaDevices存在:", !!navigator.mediaDevices);
-           console.log("- getUserMedia存在:", navigator.mediaDevices ? !!navigator.mediaDevices.getUserMedia : false);
+           // Check API availability again
+           console.log("After permission request, checking API status...");
+           console.log("- mediaDevices exists:", !!navigator.mediaDevices);
+           console.log("- getUserMedia exists:", navigator.mediaDevices ? !!navigator.mediaDevices.getUserMedia : false);
            
-           // 额外延迟，让API有时间初始化
+           // Extra delay to let API initialize
            await new Promise(resolve => setTimeout(resolve, 500));
            
-           // 再次检查API是否已变为可用
+           // Check if API has become available
            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-             console.log("权限请求后，API变为可用");
+             console.log("After permission request, API became available");
            } else {
-             console.error("权限请求后，API仍不可用");
+             console.error("After permission request, API still unavailable");
            }
          } catch (e) {
-           console.error("请求权限失败:", e);
+           console.error("Failed to request permission:", e);
          }
        }
        
-       // 方法1: 标准 mediaDevices.getUserMedia
+       // Method 1: Standard mediaDevices.getUserMedia
        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-         console.log("尝试使用标准 navigator.mediaDevices.getUserMedia...");
+         console.log("Trying standard navigator.mediaDevices.getUserMedia...");
          try {
            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
            this.handleStream(stream, video);
            return;
          } catch (err) {
-           console.warn("标准方法失败:", err.name, err.message);
-           // 继续尝试其他方法
+           console.warn("Standard method failed:", err.name, err.message);
+           // Continue to try other methods
          }
        }
        
-       // 方法2: 旧版 getUserMedia
+       // Method 2: Legacy getUserMedia
        const oldGetUserMedia = navigator.getUserMedia || 
                               navigator.webkitGetUserMedia || 
                               navigator.mozGetUserMedia || 
                               navigator.msGetUserMedia;
        
        if (oldGetUserMedia) {
-         console.log("尝试使用旧版 getUserMedia...");
+         console.log("Trying legacy getUserMedia...");
          return new Promise((resolve, reject) => {
            oldGetUserMedia.call(navigator, 
              { video: true }, 
@@ -161,16 +161,16 @@
                resolve();
              },
              err => {
-               console.warn("旧版方法失败:", err);
-               reject(new Error("所有方法均失败"));
+               console.warn("Legacy method failed:", err);
+               reject(new Error("All methods failed"));
              }
            );
          });
        }
        
-       // 方法3: 宽松约束
+       // Method 3: Relaxed constraints
        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-         console.log("尝试使用宽松约束...");
+         console.log("Trying relaxed constraints...");
          try {
            const stream = await navigator.mediaDevices.getUserMedia({ 
              video: { 
@@ -182,57 +182,57 @@
            this.handleStream(stream, video);
            return;
          } catch (err) {
-           console.warn("宽松约束方法失败:", err);
+           console.warn("Relaxed constraints method failed:", err);
          }
        }
        
-       // 所有方法都失败
-       throw new Error("浏览器不支持任何摄像头访问方法");
+       // All methods failed
+       throw new Error("Browser doesn't support any camera access method");
      },
      
      handleStream(stream, video) {
-       console.log("成功获取摄像头流");
+       console.log("Successfully obtained camera stream");
        this.videoStream = stream;
        video.srcObject = stream;
        try {
          video.play();
        } catch (e) {
-         console.error("视频播放失败:", e);
+         console.error("Video playback failed:", e);
        }
      },
      
      releaseCamera() {
-       console.log("释放摄像头资源...");
+       console.log("Releasing camera resources...");
        if (this.videoStream) {
          try {
            this.videoStream.getTracks().forEach(track => {
              track.stop();
-             console.log(`轨道 ${track.kind} 已停止`);
+             console.log(`Track ${track.kind} stopped`);
            });
            this.videoStream = null;
            
-           // 清除视频元素的源
+           // Clear video element source
            const video = document.getElementById('video');
            if (video && video.srcObject) {
              video.srcObject = null;
            }
            
-           console.log("摄像头资源已释放");
+           console.log("Camera resources released");
          } catch (e) {
-           console.error("释放摄像头资源时出错:", e);
+           console.error("Error releasing camera resources:", e);
          }
        } else {
-         console.log("没有活动的摄像头流需要释放");
+         console.log("No active camera stream to release");
        }
      },
      
      async capture() {
        try {
          if (!this.videoStream) {
-           console.error("没有活动的摄像头流，无法拍照");
+           console.error("No active camera stream, cannot take photo");
            
-           // 尝试重新初始化摄像头
-           this.errorMessage = "正在重新初始化摄像头...";
+           // Try to reinitialize camera
+           this.errorMessage = "Reinitializing camera...";
            this.initCamera();
            return;
          }
@@ -241,7 +241,7 @@
          const base64String = await this.blobToBase64(videoBlob);
          this.pyobject.save_screenshot(base64String);
        } catch (error) {
-         console.error("拍照错误:", error);
+         console.error("Photo capture error:", error);
        }
      },
 
@@ -258,7 +258,7 @@
            if (blob) {
              resolve(blob);
            } else {
-             reject(new Error("创建Blob对象失败"));
+             reject(new Error("Failed to create Blob object"));
            }
          }, mimeType);
        });
@@ -271,7 +271,7 @@
            resolve(reader.result);
          };
          reader.onerror = () => {
-           reject(new Error("Blob转Base64失败"));
+           reject(new Error("Failed to convert Blob to Base64"));
          };
          reader.readAsDataURL(blob);
        });

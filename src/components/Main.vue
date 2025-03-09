@@ -1,6 +1,6 @@
 <template>
   <div class="box">
-    <video id="video" ref="video" class="mirrored" autoplay></video>
+    <video ref="video" class="mirrored" autoplay></video>
     <div v-if="errorMessage" class="error-message">{{ errorMessage }}</div>
   </div>
 </template>
@@ -35,39 +35,28 @@
      window.retryCamera = this.initCamera;
 
      // Delay camera initialization to give page more loading time
-     setTimeout(() => {
-       this.initCamera();
-     }, 300);
+     setTimeout(() => this.initCamera(), 300);
    },
    beforeDestroy() {
-     // Release resources when component is destroyed
      this.releaseCamera();
    },
    methods: {
      initCamera() {
-       if (this.initializingCamera) {
-         return;
-       }
+       if (this.initializingCamera) return;
        
        this.initializingCamera = true;
        this.initAttempts++;
        this.errorMessage = null;
        
-       var video = document.getElementById('video');
-
-       // Ensure previous stream is released
+       const video = this.$refs.video;
        this.releaseCamera();
        
-       // Create a timeout Promise and use Promise.race to ensure we don't wait indefinitely
+       // Set timeout
        const timeoutPromise = new Promise((_, reject) => {
          setTimeout(() => reject(new Error("Camera access timed out")), 5000);
        });
        
-       // Use Promise.race to handle possible timeout situations
-       Promise.race([
-         this.detectAndUseCamera(video),
-         timeoutPromise
-       ])
+       Promise.race([this.accessCamera(video), timeoutPromise])
          .then(() => {
            this.initializingCamera = false;
          })
@@ -76,70 +65,52 @@
            this.errorMessage = `Cannot access camera: ${err.message || 'Unknown error'}`;
            this.initializingCamera = false;
            
-           // Automatically retry if attempt count is less than max
            if (this.initAttempts < this.maxAttempts) {
-             setTimeout(() => {
-               this.initCamera();
-             }, 1000);
+             setTimeout(() => this.initCamera(), 1000);
            }
          });
      },
      
-     async detectAndUseCamera(video) {
-       // Check if API is missing and wait briefly
+     async accessCamera(video) {
+       // Short delay and check if API exists
        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
          await new Promise(resolve => setTimeout(resolve, 50));
        }
        
-       // Check if camera API is completely missing
+       // Try to request permissions if still not available
        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-         // Try to activate API by requesting permission
          try {
            await this.pyobject.request_camera_permission();
-           
-           // Extra delay to let API initialize
            await new Promise(resolve => setTimeout(resolve, 50));
          } catch (e) {
            console.error("Failed to request permission:", e);
          }
        }
        
+       // Try to access camera
        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
          try {
            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-           this.handleStream(stream, video);
+           this.videoStream = stream;
+           video.srcObject = stream;
+           await video.play().catch(e => console.error("Video playback failed:", e));
            return;
          } catch (err) {
            console.warn("Camera access failed:", err.name, err.message);
          }
        }
 
-       // All methods failed
-       throw new Error("Browser doesn't support any camera access method");
-     },
-     
-     handleStream(stream, video) {
-       this.videoStream = stream;
-       video.srcObject = stream;
-       try {
-         video.play();
-       } catch (e) {
-         console.error("Video playback failed:", e);
-       }
+       throw new Error("Could not access camera");
      },
      
      releaseCamera() {
        if (this.videoStream) {
          try {
-           this.videoStream.getTracks().forEach(track => {
-             track.stop();
-           });
+           this.videoStream.getTracks().forEach(track => track.stop());
            this.videoStream = null;
            
-           // Clear video element source
-           const video = document.getElementById('video');
-           if (video && video.srcObject) {
-             video.srcObject = null;
+           if (this.$refs.video && this.$refs.video.srcObject) {
+             this.$refs.video.srcObject = null;
            }
          } catch (e) {
            console.error("Error releasing camera resources:", e);
@@ -151,22 +122,19 @@
        try {
          if (!this.videoStream) {
            console.error("No active camera stream, cannot take photo");
-           
-           // Try to reinitialize camera
            this.errorMessage = "Reinitializing camera...";
            this.initCamera();
            return;
          }
          
-         const videoBlob = await this.captureVideoFrameAsBlob(this.$refs.video, "image/png");
-         const base64String = await this.blobToBase64(videoBlob);
+         const base64String = await this.captureVideoFrame(this.$refs.video);
          this.pyobject.save_screenshot(base64String);
        } catch (error) {
          console.error("Photo capture error:", error);
        }
      },
 
-     async captureVideoFrameAsBlob(videoElement, mimeType = "image/png") {
+     async captureVideoFrame(videoElement) {
        return new Promise((resolve, reject) => {
          const canvas = document.createElement("canvas");
          canvas.width = videoElement.videoWidth;
@@ -175,26 +143,17 @@
          const ctx = canvas.getContext("2d");
          ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
 
-         canvas.toBlob((blob) => {
-           if (blob) {
-             resolve(blob);
-           } else {
-             reject(new Error("Failed to create Blob object"));
+         canvas.toBlob(blob => {
+           if (!blob) {
+             reject(new Error("Failed to create image"));
+             return;
            }
-         }, mimeType);
-       });
-     },
-
-     async blobToBase64(blob) {
-       return new Promise((resolve, reject) => {
-         const reader = new FileReader();
-         reader.onloadend = () => {
-           resolve(reader.result);
-         };
-         reader.onerror = () => {
-           reject(new Error("Failed to convert Blob to Base64"));
-         };
-         reader.readAsDataURL(blob);
+           
+           const reader = new FileReader();
+           reader.onloadend = () => resolve(reader.result);
+           reader.onerror = () => reject(new Error("Failed to convert image"));
+           reader.readAsDataURL(blob);
+         }, "image/png");
        });
      }
    }
@@ -209,7 +168,7 @@
    position: relative;
  }
  
- #video {
+ video {
    width: 100%;
    height: 100%;
  }
